@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker vs AI Bot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Poker Game - You vs AI Bot</h1>
+
+        <div class="game-layout">
+            <!-- Left Column: Poker Table -->
+            <div class="left-column">
+                <div class="poker-table">
+            <!-- AI Bot Section -->
+            <div class="player ai-player">
+                <div class="player-info">
+                    <h2>AI Bot</h2>
+                    <div class="stack">Stack: $<span id="ai-stack">1000</span></div>
+                    <div class="current-bet">Current Bet: $<span id="ai-bet">0</span></div>
+                    <div class="last-action" id="ai-action">-</div>
+                </div>
+                <div class="cards" id="ai-cards">
+                    <div class="card card-back">?</div>
+                    <div class="card card-back">?</div>
+                </div>
+            </div>
+
+            <!-- Community Cards -->
+            <div class="community-cards">
+                <h3>Community Cards</h3>
+                <div class="cards" id="community-cards">
+                    <div class="card empty">-</div>
+                    <div class="card empty">-</div>
+                    <div class="card empty">-</div>
+                    <div class="card empty">-</div>
+                    <div class="card empty">-</div>
+                </div>
+            </div>
+
+            <!-- Human Player Section -->
+            <div class="player human-player">
+                <div class="player-info">
+                    <h2>You</h2>
+                    <div class="stack">Stack: $<span id="human-stack">1000</span></div>
+                    <div class="current-bet">Current Bet: $<span id="human-bet">0</span></div>
+                    <div class="last-action" id="human-action">-</div>
+                </div>
+                <div class="cards" id="human-cards">
+                    <div class="card empty">-</div>
+                    <div class="card empty">-</div>
+                </div>
+                </div>
+            </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons" id="action-buttons">
+                    <button id="fold-btn" class="btn btn-fold" onclick="makeAction('fold')">Fold</button>
+                    <button id="call-btn" class="btn btn-call" onclick="makeAction('call')">Call</button>
+                    <button id="raise-btn" class="btn btn-raise" onclick="makeAction('raise')">Raise</button>
+                </div>
+
+                <!-- Raise Amount Input (hidden by default) -->
+                <div id="raise-input-section" style="display: none;">
+                    <label for="raise-amount">Raise Amount:</label>
+                    <input type="number" id="raise-amount" min="0" step="10">
+                    <button class="btn btn-confirm" onclick="confirmRaise()">Confirm</button>
+                    <button class="btn btn-cancel" onclick="cancelRaise()">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Right Column: Game Info & Controls -->
+            <div class="right-column">
+                <div class="info-panel">
+                    <h3>Game Info</h3>
+                    <div class="info-row">
+                        <span>Round:</span>
+                        <span id="round">0</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Street:</span>
+                        <span id="street">-</span>
+                    </div>
+                    <div class="info-row">
+                        <span>Pot:</span>
+                        <span class="pot-amount">$<span id="pot">0</span></span>
+                    </div>
+                    <div class="info-row">
+                        <span>Small Blind:</span>
+                        <span>$<span id="small-blind">10</span></span>
+                    </div>
+                </div>
+
+                <!-- Game Controls -->
+                <div class="control-panel">
+                    <button id="start-btn" class="btn btn-primary" onclick="startGame()">Start New Game</button>
+                    <button id="next-round-btn" class="btn btn-secondary" onclick="nextRound()" style="display: none;">Next Round</button>
+                </div>
+
+                <!-- Game Messages -->
+                <div class="messages-panel">
+                    <h3>Game Log</h3>
+                    <div id="game-log"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Winner Overlay -->
+        <div id="winner-overlay" class="winner-overlay" style="display: none;">
+            <div class="winner-content">
+                <h1 id="winner-text"></h1>
+                <p id="winner-details"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
