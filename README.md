@@ -62,23 +62,21 @@ The application will start on `http://localhost:5000`
   - **Call**: Match the current bet
   - **Raise**: Increase the bet (limited to 4 raises per street)
 
-## Files
-
-- `app.py` - Flask backend server
-- `custom_player.py` - AI bot implementation
-- `model4.pth` - Trained DQN model weights
-- `pypokerengine/` - PyPokerEngine library (included locally)
-- `templates/index.html` - Main game UI
-- `static/style.css` - Styling
-- `static/script.js` - Frontend game logic
-- `requirements.txt` - Python dependencies
-
 ## Architecture
 
 - **Frontend**: HTML/CSS/JavaScript for the game interface
 - **Backend**: Flask server managing game state and AI opponent
-- **AI Model**: PyTorch DQN model trained on poker gameplay
+- **AI Model**: DQN trained with PyTorch, deployed with NumPy (see [players/README.md](players/README.md))
 - **Game Engine**: PyPokerEngine for poker game logic
+
+### Two AI Versions
+
+This project includes **two versions** of the AI player:
+
+1. **`custom_player_numpy.py`** (Production) - Lightweight NumPy-only version for Vercel deployment
+2. **`custom_player.py`** (Development) - Full PyTorch version for local development and training
+
+Both produce **identical decisions** (verified with automated tests). See [players/README.md](players/README.md) for details.
 
 ## Notes
 
@@ -92,8 +90,9 @@ The application will start on `http://localhost:5000`
 If you encounter issues:
 
 1. Make sure all dependencies are installed: `pip install -r requirements.txt`
-2. Verify that `model4.pth` is in the same directory as `custom_player.py`
+2. Verify that `models/model_weights.json` exists
 3. Check that port 5000 is not in use by another application
 4. Try running with `python app.py` instead of `flask run`
+5. For AI issues, see [players/README.md](players/README.md)
 
 Enjoy playing poker against the AI!

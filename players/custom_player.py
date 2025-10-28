@@ -23,9 +23,9 @@ class CustomPlayer(BasePokerPlayer):
   def __init__(self):
         super().__init__()
         self.model = DQN(input_size=3)
-        # Use relative path to models directory
         import os
-        model_path = os.path.join(os.path.dirname(__file__), 'models', 'model4.pth')
+        # Go up one level from players/ to project root, then into models/
+        model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models', 'model.pth')
         self.model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
         self.model.eval()
 

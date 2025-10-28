@@ -43,3 +43,8 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Helper scripts (not needed for deployment)
+extract_weights.py
+convert_model_to_onnx.py
+test_equivalence.py

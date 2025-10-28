@@ -1,14 +1,14 @@
 """
 Poker game logic module
-Contains the SimplePokerGame class that handles game state and rules
+Contains the PokerGame class that handles game state and rules
 """
 
 from pypokerengine.engine.deck import Deck
 from pypokerengine.engine.hand_evaluator import HandEvaluator
-from custom_player import CustomPlayer
+from players.custom_player_numpy import CustomPlayer
 
 
-class SimplePokerGame:
+class PokerGame:
     """Simplified poker game that doesn't use the full start_poker flow"""
 
     def __init__(self):
@@ -20,7 +20,12 @@ class SimplePokerGame:
         self.human_name = "You"
         self.ai_name = "AI Bot"
 
+        # Initialize AI player
         self.ai_player = CustomPlayer()
+        # Set required attributes for the AI player
+        if not hasattr(self.ai_player, 'uuid'):
+            self.ai_player.uuid = 'ai-player'
+        self.ai_player.starting_stack = self.initial_stack
 
         # Game state
         self.current_round = 0
@@ -117,11 +122,49 @@ class SimplePokerGame:
 
         return actions
 
+    def get_ai_action(self):
+        """Get AI's decision using the trained model"""
+        # Create a mock round_state for the AI player to evaluate
+        round_state = {
+            'community_card': [str(card) for card in self.community_cards],
+            'pot': {'main': {'amount': self.pot}},
+            'seats': [
+                {
+                    'uuid': self.ai_player.uuid,
+                    'stack': self.player_stacks['ai']
+                }
+            ]
+        }
+
+        # Get valid actions for AI (mirror of human's perspective)
+        valid_actions = []
+        valid_actions.append({'action': 'fold', 'amount': 0})
+
+        call_amount = self.human_bet - self.ai_bet
+        if call_amount > 0:
+            valid_actions.append({'action': 'call', 'amount': call_amount})
+        else:
+            valid_actions.append({'action': 'call', 'amount': 0})
+
+        min_raise = max(self.big_blind, self.current_bet * 2)
+        max_raise = min(self.player_stacks['ai'], self.player_stacks['human'])
+        if min_raise <= max_raise:
+            valid_actions.append({
+                'action': 'raise',
+                'amount': {'min': min_raise, 'max': max_raise}
+            })
+
+        # Let the AI decide
+        hole_cards = [str(card) for card in self.ai_cards]
+        action = self.ai_player.declare_action(valid_actions, hole_cards, round_state)
+
+        return action
+
     def get_game_state(self, show_ai_cards=False):
         """Get current game state"""
         return {
             'round_count': self.current_round,
-            'street': self.street,
+            'street': self.street.capitalize(),
             'pot': self.pot,
             'players': {
                 'human': self.player_stacks['human'],
@@ -196,18 +239,42 @@ class SimplePokerGame:
             if self.player_stacks['human'] < 0:
                 self.player_stacks['human'] = 0
 
-            # AI responds (simplified - always calls for now)
-            call_amount = self.human_bet - self.ai_bet
-            if call_amount <= self.player_stacks['ai']:
-                self.ai_bet += call_amount
-                self.player_stacks['ai'] -= call_amount
-                self.pot += call_amount
-                return self.next_street()
-            else:
+            # AI decides how to respond using the trained model
+            ai_action = self.get_ai_action()
+
+            if ai_action == 'fold':
                 # AI folds
                 self.player_stacks['human'] += self.pot
                 self.pot = 0
                 return self.end_round('You won! AI folded.', show_ai_cards=True, winner='human')
+
+            elif ai_action == 'call':
+                # AI calls
+                call_amount = self.human_bet - self.ai_bet
+                if call_amount <= self.player_stacks['ai']:
+                    self.ai_bet += call_amount
+                    self.player_stacks['ai'] -= call_amount
+                    self.pot += call_amount
+                    return self.next_street()
+                else:
+                    # Can't afford to call, must fold
+                    self.player_stacks['human'] += self.pot
+                    self.pot = 0
+                    return self.end_round('You won! AI folded.', show_ai_cards=True, winner='human')
+
+            elif ai_action == 'raise':
+                # AI re-raises (simplified: just calls for now to avoid infinite raise loop)
+                call_amount = self.human_bet - self.ai_bet
+                if call_amount <= self.player_stacks['ai']:
+                    self.ai_bet += call_amount
+                    self.player_stacks['ai'] -= call_amount
+                    self.pot += call_amount
+                    return self.next_street()
+                else:
+                    # Can't afford, fold
+                    self.player_stacks['human'] += self.pot
+                    self.pot = 0
+                    return self.end_round('You won! AI folded.', show_ai_cards=True, winner='human')
 
         return self.get_game_state()
 
@@ -299,13 +366,49 @@ class SimplePokerGame:
 
         # Get appropriate hand names - with details only for tiebreakers
         if same_hand_type:
-            # Same hand type - include high card details for tiebreaker
-            human_hand_name = self.get_hand_name(self.human_cards, self.community_cards)
-            ai_hand_name = self.get_hand_name(self.ai_cards, self.community_cards)
+            # Same hand type - get base hand name
+            base_hand_name = self.get_simple_hand_name(human_info['hand']['strength'])
+
+            # Get high cards for comparison
+            human_high = human_info['hand']['high']
+            ai_high = ai_info['hand']['high']
+
+            # Convert rank to name
+            rank_names = {
+                14: 'Ace', 13: 'King', 12: 'Queen', 11: 'Jack',
+                10: '10', 9: '9', 8: '8', 7: '7', 6: '6',
+                5: '5', 4: '4', 3: '3', 2: '2'
+            }
+            human_high_name = rank_names.get(human_high, str(human_high))
+            ai_high_name = rank_names.get(ai_high, str(ai_high))
+
+            human_hand_name = base_hand_name
+            ai_hand_name = base_hand_name
         else:
-            # Different hand types - use simple names
-            human_hand_name = self.get_simple_hand_name(human_info['hand']['strength'])
-            ai_hand_name = self.get_simple_hand_name(ai_info['hand']['strength'])
+            # Different hand types - use simple names, except for High Card
+            if human_info['hand']['strength'] == 'HIGHCARD':
+                human_high = human_info['hand']['high']
+                rank_names = {
+                    14: 'Ace', 13: 'King', 12: 'Queen', 11: 'Jack',
+                    10: '10', 9: '9', 8: '8', 7: '7', 6: '6',
+                    5: '5', 4: '4', 3: '3', 2: '2'
+                }
+                human_high_name = rank_names.get(human_high, str(human_high))
+                human_hand_name = f'High Card ({human_high_name})'
+            else:
+                human_hand_name = self.get_simple_hand_name(human_info['hand']['strength'])
+
+            if ai_info['hand']['strength'] == 'HIGHCARD':
+                ai_high = ai_info['hand']['high']
+                rank_names = {
+                    14: 'Ace', 13: 'King', 12: 'Queen', 11: 'Jack',
+                    10: '10', 9: '9', 8: '8', 7: '7', 6: '6',
+                    5: '5', 4: '4', 3: '3', 2: '2'
+                }
+                ai_high_name = rank_names.get(ai_high, str(ai_high))
+                ai_hand_name = f'High Card ({ai_high_name})'
+            else:
+                ai_hand_name = self.get_simple_hand_name(ai_info['hand']['strength'])
 
         # Debug print to check scoring
         print(f"DEBUG - Human: {human_hand_name} (score: {human_score}), AI: {ai_hand_name} (score: {ai_score})")
@@ -313,10 +416,16 @@ class SimplePokerGame:
         # Determine winner (HIGHER score is better in PyPokerEngine)
         if human_score > ai_score:
             winner = 'human'
-            message = f'You won with {human_hand_name}! AI had {ai_hand_name}'
+            if same_hand_type:
+                message = f'You won with {human_hand_name} ({human_high_name} high)! AI had {ai_hand_name} ({ai_high_name} high)'
+            else:
+                message = f'You won with {human_hand_name}! AI had {ai_hand_name}'
         elif ai_score > human_score:
             winner = 'ai'
-            message = f'AI Bot won with {ai_hand_name}! You had {human_hand_name}'
+            if same_hand_type:
+                message = f'AI Bot won with {ai_hand_name} ({ai_high_name} high)! You had {human_hand_name} ({human_high_name} high)'
+            else:
+                message = f'AI Bot won with {ai_hand_name}! You had {human_hand_name}'
         else:
             # Tie - split pot
             self.player_stacks['human'] += self.pot // 2

@@ -1,12 +1,12 @@
 from flask import Flask, render_template, request, jsonify, session
-from game_logic import SimplePokerGame
+from game_logic import PokerGame
 import uuid
 import secrets
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 
-# Global game state storage (in production, use Redis or database)
+# Global game state storage
 games = {}
 
 
@@ -19,7 +19,7 @@ def index():
 def start_game():
     # Create new game instance
     game_id = str(uuid.uuid4())
-    game = SimplePokerGame()
+    game = PokerGame()
 
     # Store in session
     session['game_id'] = game_id
