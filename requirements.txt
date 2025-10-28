@@ -1,5 +1,5 @@
 Flask==3.0.0
 Werkzeug==3.0.1
-torch==2.1.0
+torch==2.2.0
 numpy==2.2.5
 PyPokerEngine==1.0.5
