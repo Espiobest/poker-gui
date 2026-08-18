@@ -48,3 +48,4 @@ Thumbs.db
 extract_weights.py
 convert_model_to_onnx.py
 test_equivalence.py
+.env*
